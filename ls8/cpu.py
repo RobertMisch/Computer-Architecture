@@ -7,7 +7,9 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.pc = 0
 
     def load(self):
         """Load a program into memory."""
@@ -59,7 +61,19 @@ class CPU:
             print(" %02X" % self.reg[i], end='')
 
         print()
+    #mar is memory address register, and is the address we want. mdr is the data we want in a register
+    def ram_read(self, MAR):
+        return self.ram[MAR]
+
+    def ram_write(self, MAR, MDR):
+        self.ram[MAR] = MDR
 
     def run(self):
         """Run the CPU."""
-        pass
+        instruction_register=self.ram_read[pc]
+        running = True
+        while running:
+            if instruction_register == 0b00000001:
+                print('halted successfully')
+                running = False
+
