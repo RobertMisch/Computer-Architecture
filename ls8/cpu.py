@@ -70,10 +70,25 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        instruction_register=self.ram_read[pc]
         running = True
         while running:
+            instruction_register=self.ram_read(self.pc)
+            #HLT
             if instruction_register == 0b00000001:
                 print('halted successfully')
                 running = False
+            #LDI
+            elif instruction_register == 0b10000010:
+                reg_num = self.ram_read(self.pc + 1)
+                value = self.ram_read(self.pc + 2)
+                self.reg[reg_num] = value
+                self.pc += 3
+            #PRN 01000111 00000rrr
+            elif instruction_register == 0b01000111:
+                reg_num = self.ram_read(self.pc + 1)
+                self.pc += 2
+                print(self.reg[reg_num])
+            else:
+                print("unknown instruction")
+                self.pc += 1
 
