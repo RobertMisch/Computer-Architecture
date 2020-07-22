@@ -10,27 +10,51 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.running=True
+        #available functions
+        self.branchtable={}
+        self.branchtable[0b00000001]=self.HLT 
+        self.branchtable[0b10000010]=self.LDI
+        self.branchtable[0b01000111]=self.PRN
+        self.branchtable[0b10100010]=self.MULT
 
     def load(self):
         """Load a program into memory."""
 
         address = 0
 
-        # For now, we've just hardcoded a program:
+        if len(sys.argv) != 2:
+            print("usage: ls8.py filename")
+            sys.exit(1)
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        try:
+            with open(sys.argv[1]) as f:
+                for line in f:
+                    try:
+                        line = line.split("#",1)[0]
+                        line = int(line, 2)  # int() is base 10 by default
+                        self.ram[address] = line
+                        address += 1
+                    except ValueError:
+                        pass
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        except FileNotFoundError:
+            print(f"Couldn't find file {sys.argv[1]}")
+            sys.exit(1)
+
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
+
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
 
     def alu(self, op, reg_a, reg_b):
@@ -38,6 +62,8 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == "MULT":
+            self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -68,26 +94,32 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
+    def HLT(self):
+        print('halted successfully')
+        self.running = False
+
+    def LDI(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[reg_num] = value
+        self.pc += 3
+
+    def PRN(self):
+        reg_num = self.ram_read(self.pc + 1)
+        self.pc += 2
+        print(self.reg[reg_num])
+
+    def MULT(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MULT", reg_a, reg_b)
+        self.pc += 3
+
     def run(self):
         """Run the CPU."""
-        running = True
-        while running:
-            instruction_register=self.ram_read(self.pc)
-            #HLT
-            if instruction_register == 0b00000001:
-                print('halted successfully')
-                running = False
-            #LDI
-            elif instruction_register == 0b10000010:
-                reg_num = self.ram_read(self.pc + 1)
-                value = self.ram_read(self.pc + 2)
-                self.reg[reg_num] = value
-                self.pc += 3
-            #PRN 01000111 00000rrr
-            elif instruction_register == 0b01000111:
-                reg_num = self.ram_read(self.pc + 1)
-                self.pc += 2
-                print(self.reg[reg_num])
+        while self.running:
+            if self.ram_read(self.pc) in self.branchtable:
+                self.branchtable[self.ram_read(self.pc)]()
             else:
                 print("unknown instruction")
                 self.pc += 1
