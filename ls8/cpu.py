@@ -11,12 +11,17 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running=True
+        self.SP = 6
+        self.reg[self.SP] = 0xF4 -1
+
         #available functions
         self.branchtable={}
         self.branchtable[0b00000001]=self.HLT 
         self.branchtable[0b10000010]=self.LDI
         self.branchtable[0b01000111]=self.PRN
         self.branchtable[0b10100010]=self.MULT
+        self.branchtable[0b01000101]=self.PUSH
+        self.branchtable[0b01000110]=self.POP
 
     def load(self):
         """Load a program into memory."""
@@ -41,21 +46,6 @@ class CPU:
         except FileNotFoundError:
             print(f"Couldn't find file {sys.argv[1]}")
             sys.exit(1)
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
-
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -114,6 +104,22 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("MULT", reg_a, reg_b)
         self.pc += 3
+
+    def PUSH(self):
+        self.reg[self.SP] -= 1
+        target_reg = self.ram_read(self.pc + 1)
+        print(f'pushed {self.reg[target_reg]} onto stack at {self.reg[self.SP]}')
+        self.ram_write(self.reg[self.SP], self.reg[target_reg])
+        self.pc += 2
+
+    def POP(self):
+        store_reg = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.reg[self.SP])
+        print(f'took {value} off stack at {self.reg[self.SP]}')
+        self.reg[store_reg]= value
+        self.reg[self.SP] += 1
+        self.pc += 2
+
 
     def run(self):
         """Run the CPU."""
