@@ -23,16 +23,17 @@ class CPU:
         self.branchtable[0b00000001]=self.HLT 
         self.branchtable[0b10000010]=self.LDI
         self.branchtable[0b01000111]=self.PRN
-        self.branchtable[0b10100010]=self.MULT
-        self.branchtable[0b10100000]=self.ADD
         self.branchtable[0b01000101]=self.PUSH
         self.branchtable[0b01000110]=self.POP
         self.branchtable[0b01010000]=self.CALL
         self.branchtable[0b00010001]=self.RET
+        #ALU
+        self.branchtable[0b10100010]=self.MULT
+        self.branchtable[0b10100000]=self.ADD
         self.branchtable[0b10100111]=self.CMP
-        # self.branchtable[0b00010001]=self.JMP
-        # self.branchtable[0b00010001]=self.JEQ
-        # self.branchtable[0b00010001]=self.JNE
+        self.branchtable[0b01010100]=self.JMP
+        self.branchtable[0b01010101]=self.JEQ
+        self.branchtable[0b01010110]=self.JNE
 
     def load(self):
         """Load a program into memory."""
@@ -73,6 +74,7 @@ class CPU:
                 self.reg[self.FL] = 0b00000010
             elif self.reg[reg_a] == self.reg[reg_b]:
                 self.reg[self.FL] = 0b00000001
+                # print(f'flag set equal')
 
         #elif op == "SUB": etc
         else:
@@ -168,6 +170,25 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("CMP", reg_a, reg_b)
         self.pc += 3
+    def JMP(self):
+        jump_to = self.ram_read(self.pc + 1)
+        self.pc = self.reg[jump_to]
+
+    def JEQ(self):
+        jump_to = self.ram_read(self.pc + 1)
+        if self.reg[self.FL] == 0b00000001:
+            self.pc = self.reg[jump_to]
+            # print(f"pc set to {self.pc}")
+        else:
+            self.pc += 2
+    def JNE(self):
+        jump_to = self.ram_read(self.pc + 1)
+        if self.reg[self.FL] != 0b00000001:
+            self.pc = self.reg[jump_to]
+            # print(f"pc set to {self.pc}")
+        else:
+            self.pc += 2
+
 
     def run(self):
         """Run the CPU."""
