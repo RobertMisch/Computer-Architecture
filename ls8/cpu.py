@@ -11,6 +11,7 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running=True
+        self.FL = 5
         #stack pointer
         #register of SP, 7th
         self.SP = 6
@@ -28,6 +29,10 @@ class CPU:
         self.branchtable[0b01000110]=self.POP
         self.branchtable[0b01010000]=self.CALL
         self.branchtable[0b00010001]=self.RET
+        self.branchtable[0b10100111]=self.CMP
+        # self.branchtable[0b00010001]=self.JMP
+        # self.branchtable[0b00010001]=self.JEQ
+        # self.branchtable[0b00010001]=self.JNE
 
     def load(self):
         """Load a program into memory."""
@@ -60,6 +65,15 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MULT":
             self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
+        elif op == "CMP":
+            #LGE
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.reg[self.FL] = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.reg[self.FL] = 0b00000010
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.reg[self.FL] = 0b00000001
+
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -148,6 +162,12 @@ class CPU:
         self.pc = self.ram_read(self.reg[self.SP])
         # print(f'took {self.pc} off stack at {self.reg[self.SP]}')
         self.reg[self.SP] += 1
+
+    def CMP(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("CMP", reg_a, reg_b)
+        self.pc += 3
 
     def run(self):
         """Run the CPU."""
