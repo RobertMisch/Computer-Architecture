@@ -25,12 +25,21 @@ class CPU:
         self.branchtable[0b01000111]=self.PRN
         self.branchtable[0b01000101]=self.PUSH
         self.branchtable[0b01000110]=self.POP
-        self.branchtable[0b01010000]=self.CALL
-        self.branchtable[0b00010001]=self.RET
         #ALU
         self.branchtable[0b10100010]=self.MULT
         self.branchtable[0b10100000]=self.ADD
         self.branchtable[0b10100111]=self.CMP
+        #stretch ALU
+        self.branchtable[0b10101000]=self.AND
+        self.branchtable[0b10101010]=self.OR
+        self.branchtable[0b10101011]=self.XOR
+        self.branchtable[0b01101001]=self.NOT
+        self.branchtable[0b10101100]=self.SHL
+        self.branchtable[0b10101101]=self.SHR
+        self.branchtable[0b10100100]=self.MOD
+        #PC jumps
+        self.branchtable[0b01010000]=self.CALL
+        self.branchtable[0b00010001]=self.RET
         self.branchtable[0b01010100]=self.JMP
         self.branchtable[0b01010101]=self.JEQ
         self.branchtable[0b01010110]=self.JNE
@@ -74,8 +83,24 @@ class CPU:
                 self.reg[self.FL] = 0b00000010
             elif self.reg[reg_a] == self.reg[reg_b]:
                 self.reg[self.FL] = 0b00000001
-                # print(f'flag set equal')
-
+        elif op == "AND":
+            self.reg[reg_a] = self.reg[reg_a] & self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] = self.reg[reg_a] | self.reg[reg_b]
+        elif op == "XOR":
+            self.reg[reg_a] = self.reg[reg_a] ^ self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] = ~self.reg[reg_a]
+        elif op == "SHL":
+            self.reg[reg_a] = self.reg[reg_a] << self.reg[reg_b]
+        elif op == "SHR":
+            self.reg[reg_a] = self.reg[reg_a] >> self.reg[reg_b]
+        elif op == "MOD":
+            if self.reg[reg_b] == 0:
+                self.running = False
+                print('divide by 0 error')
+                return
+            self.reg[reg_a] = self.reg[reg_a] % self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -170,6 +195,7 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("CMP", reg_a, reg_b)
         self.pc += 3
+
     def JMP(self):
         jump_to = self.ram_read(self.pc + 1)
         self.pc = self.reg[jump_to]
@@ -188,6 +214,42 @@ class CPU:
             # print(f"pc set to {self.pc}")
         else:
             self.pc += 2
+    #stretch ALU functions
+    def AND(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("AND", reg_a, reg_b)
+        self.pc += 3
+    def OR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("OR", reg_a, reg_b)
+        self.pc += 3
+    def XOR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("XOR", reg_a, reg_b)
+        self.pc += 3
+    def NOT(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = 0
+        self.alu("NOT", reg_a, reg_b)
+        self.pc += 2
+    def SHL(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SHL", reg_a, reg_b)
+        self.pc += 3
+    def SHR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SHR", reg_a, reg_b)
+        self.pc += 3
+    def MOD(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MOD", reg_a, reg_b)
+        self.pc += 3
 
 
     def run(self):
