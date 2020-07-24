@@ -11,8 +11,11 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running=True
+        #stack pointer
+        #register of SP, 7th
         self.SP = 6
-        self.reg[self.SP] = 0xF4 -1
+        #actual pointer
+        self.reg[self.SP] = 0xF4
 
         #available functions
         self.branchtable={}
@@ -20,8 +23,11 @@ class CPU:
         self.branchtable[0b10000010]=self.LDI
         self.branchtable[0b01000111]=self.PRN
         self.branchtable[0b10100010]=self.MULT
+        self.branchtable[0b10100000]=self.ADD
         self.branchtable[0b01000101]=self.PUSH
         self.branchtable[0b01000110]=self.POP
+        self.branchtable[0b01010000]=self.CALL
+        self.branchtable[0b00010001]=self.RET
 
     def load(self):
         """Load a program into memory."""
@@ -105,21 +111,43 @@ class CPU:
         self.alu("MULT", reg_a, reg_b)
         self.pc += 3
 
+    def ADD(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("ADD", reg_a, reg_b)
+        self.pc += 3
+
     def PUSH(self):
         self.reg[self.SP] -= 1
         target_reg = self.ram_read(self.pc + 1)
-        print(f'pushed {self.reg[target_reg]} onto stack at {self.reg[self.SP]}')
+        # print(f'pushed {self.reg[target_reg]} onto stack at {self.reg[self.SP]}')
         self.ram_write(self.reg[self.SP], self.reg[target_reg])
         self.pc += 2
 
     def POP(self):
         store_reg = self.ram_read(self.pc + 1)
         value = self.ram_read(self.reg[self.SP])
-        print(f'took {value} off stack at {self.reg[self.SP]}')
+        # print(f'took {value} off stack at {self.reg[self.SP]}')
         self.reg[store_reg]= value
         self.reg[self.SP] += 1
         self.pc += 2
 
+    def CALL(self):
+        new_pc = self.ram_read(self.pc + 1)
+        ret_addr = self.pc + 2
+
+        #push ret onto stack to get back with RET
+        self.reg[self.SP] -= 1
+        self.ram_write(self.reg[self.SP], ret_addr)
+
+        self.pc = self.reg[new_pc]
+        # print(f'pushed {ret_addr} onto stack at {self.reg[self.SP]}')
+
+    def RET(self):
+        #pop from stack into pc
+        self.pc = self.ram_read(self.reg[self.SP])
+        # print(f'took {self.pc} off stack at {self.reg[self.SP]}')
+        self.reg[self.SP] += 1
 
     def run(self):
         """Run the CPU."""
@@ -127,6 +155,6 @@ class CPU:
             if self.ram_read(self.pc) in self.branchtable:
                 self.branchtable[self.ram_read(self.pc)]()
             else:
-                print("unknown instruction")
+                print(f"unknown instruction {self.ram_read(self.pc)}")
                 self.pc += 1
 
